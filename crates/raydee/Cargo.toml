@@ -1,0 +1,16 @@
+[package]
+name = "raydee"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy             = { workspace = true }
+tinyvec          = { workspace = true }
+enum-derive-2018 = { workspace = true }
+macro-attr-2018  = { workspace = true }
+
+[dev-dependencies]
+bevy = { workspace = true, features=["default"] }
+
+[lints]
+workspace = true

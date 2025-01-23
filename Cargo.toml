@@ -1,0 +1,73 @@
+[workspace]
+resolver="2"
+members = [
+    "crates/game",
+    "crates/raydee",
+    "crates/bevy_asset_ldtk"
+]
+
+[workspace.dependencies]
+raydee = { path = "crates/raydee" }
+strid = { path = "crates/strid" }
+bevy_asset_ldtk = { path = "crates/bevy_asset_ldtk" }
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "361397fcac754860d619fb6e60dd7a3e596464c4", features=["file_watcher", "dynamic_linking"] }
+tinyvec = "1.8.0"
+enum-derive-2018 = "3.0.2"
+macro-attr-2018 = "3.0.1"
+thiserror = "2.0.3"
+serde = "1.0.217"
+serde_json = "1.0.138"
+
+[workspace.lints.clippy]
+all                            = { level = "warn", priority = -1 }
+pedantic                       = { level = "warn", priority = -1 }
+alloc_instead_of_core          = "warn"
+as_underscore                  = "warn"
+clone_on_ref_ptr               = "warn"
+create_dir                     = "warn"
+empty_structs_with_brackets    = "warn"
+error_impl_error               = "warn"
+exit                           = "warn"
+filetype_is_file               = "warn"
+fn_to_numeric_cast_any         = "warn"
+format_push_string             = "warn"
+if_then_some_else_none         = "warn"
+missing_const_for_fn           = "warn"
+mixed_read_write_in_expression = "warn"
+panic_in_result_fn             = "warn"
+partial_pub_fields             = "warn"
+std_instead_of_core            = "warn"
+str_to_string                  = "warn"
+string_to_string               = "warn"
+tests_outside_test_module      = "warn"
+undocumented_unsafe_blocks     = "warn"
+unnecessary_safety_comment     = "warn"
+unnecessary_safety_doc         = "warn"
+unseparated_literal_suffix     = "warn"
+
+cast_lossless                  = "allow"
+cast_possible_truncation       = "allow"
+cast_possible_wrap             = "allow"
+cast_precision_loss            = "allow"
+cast_sign_loss                 = "allow"
+missing_docs_in_private_items  = "allow"
+missing_errors_doc             = "allow"
+module_name_repetitions        = "allow"
+needless_pass_by_value         = "allow"
+shadow_unrelated               = "allow"       
+missing_panics_doc             = "allow" 
+unwrap_in_result               = "allow"
+many_single_char_names         = "allow"
+match_same_arms                = "allow"
+collapsible_else_if            = "allow"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

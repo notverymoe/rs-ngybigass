@@ -1,0 +1,12 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy            = { workspace = true }
+bevy_asset_ldtk = { workspace = true }
+raydee = { workspace = true }
+
+[lints]
+workspace = true
