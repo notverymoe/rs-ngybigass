@@ -2,6 +2,8 @@
 
 use bevy::prelude::*;
 
+pub mod util;
+
 pub mod schemas;
 mod loader;
 

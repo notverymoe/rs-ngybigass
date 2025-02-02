@@ -60,6 +60,9 @@ unwrap_in_result               = "allow"
 many_single_char_names         = "allow"
 match_same_arms                = "allow"
 collapsible_else_if            = "allow"
+too_many_arguments             = "allow"
+too_many_lines                 = "allow"
+wildcard_imports               = "allow"
 
 [profile.release]
 opt-level = 3
