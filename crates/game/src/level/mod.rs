@@ -12,7 +12,7 @@ pub use tileset::*;
 mod player;
 pub use player::*;
 
-use crate::environment::collision::CollisionMap;
+use crate::collision::CollisionMap;
 
 pub fn spawn_ldtk_tile<'a>(
     commands: &'a mut Commands,

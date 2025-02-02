@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use raydee::prelude::{MotionFrame, MotionQuery, ShapeCommon, ShapeMoving};
 
-use crate::environment::collision::CollisionMap;
+use crate::collision::CollisionMap;
 
 use super::Pawn;
 

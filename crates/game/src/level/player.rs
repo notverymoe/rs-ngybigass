@@ -2,7 +2,7 @@
 
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::Commands, math::Vec2, render::view::InheritedVisibility, transform::components::Transform};
 
-use crate::{environment::pawn::Pawn, player::{CameraPlayer, PawnPlayer}, scale::CameraPixelScaler};
+use crate::{pawn::Pawn, player::{CameraPlayer, PawnPlayer}, scale::CameraPixelScaler};
 
 pub fn spawn_player(
     commands: &mut Commands,

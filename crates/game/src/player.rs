@@ -2,7 +2,7 @@
 
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::environment::pawn::{Pawn, PawnMove};
+use crate::pawn::{Pawn, PawnMove};
 
 #[derive(Debug, Clone, Copy, Component)]
 pub struct PawnPlayer {

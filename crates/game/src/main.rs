@@ -5,10 +5,8 @@ use bevy::prelude::*;
 use bevy_asset_ldtk::{util::ldtk_resolve_layer_position, LDTKAssetPlugin, LDTKProject};
 
 use game::{
-    environment::{
-        collision::CollisionMap, 
-        pawn::{sync_pawn_transform, Pawn}
-    }, 
+    collision::CollisionMap, 
+    pawn::{sync_pawn_transform, Pawn},
     level::{ldtk_load_tilesets, spawn_ldtk_tile, spawn_player}, 
     player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer}, 
     scale::{apply_pixel_scale, PixelsPerUnit}
