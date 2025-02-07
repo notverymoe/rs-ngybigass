@@ -1,22 +1,19 @@
 // Copyright 2025 Natalie Baker // AGPLv3 //
 
-use bevy::prelude::*;
+use bevy::{image::{ImageLoaderSettings, ImageSampler}, prelude::*};
 
 use bevy_asset_ldtk::{util::ldtk_resolve_layer_position, LDTKAssetPlugin, LDTKProject};
 
 use game::{
-    collision::CollisionMap, 
-    pawn::{sync_pawn_transform, Pawn},
-    level::{ldtk_load_tilesets, spawn_ldtk_tile, spawn_player}, 
-    player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer}, 
-    scale::{apply_pixel_scale, PixelsPerUnit}
+    collision::CollisionMap, level::spawn_player, pawn::{sync_pawn_transform, Pawn}, player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer}, scale::{apply_pixel_scale, PixelsPerUnit}, tilemap::{PluginTextureBank, TextureBank, TextureBankImportConfig, TextureBankMaterial}
 };
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(LDTKAssetPlugin)
-        .insert_resource(ClearColor(Color::BLACK))
+        .add_plugins(PluginTextureBank)
+        // .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(PixelsPerUnit(24.0))
         .insert_resource(CollisionMap::default())
         .add_systems(Startup, setup)
@@ -43,9 +40,9 @@ fn setup_map(
 
     mut asset_events: EventReader<AssetEvent<LDTKProject>>,
 
-    asset_server: Res<AssetServer>,
+    // asset_server: Res<AssetServer>,
     assets_ldtk: Res<Assets<LDTKProject>>,    
-    mut assets_texture_asset_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    // mut assets_texture_asset_layouts: ResMut<Assets<TextureAtlasLayout>>,
 
     player: Query<&PawnPlayer>,
     despawn: Query<Entity, With<LevelDespawnFlag>>,
@@ -74,16 +71,16 @@ fn setup_map(
 
         // // Tilesets // //
 
-        let tilesets = ldtk_load_tilesets(&asset_server, &mut assets_texture_asset_layouts, project, "level/");
+        // let tilesets = ldtk_load_tilesets(&asset_server, &mut assets_texture_asset_layouts, project, "level/");
 
         // // Tile Layers // //
 
-        if let Some(layer) = level.layer_instances.as_ref().and_then(|v| v.iter().find(|l| l.identifier == "walls")) {
-            let tileset = tilesets.lookup.get(&layer.tileset_def_uid.unwrap()).unwrap();
-            for tile in &layer.auto_layer_tiles {
-                spawn_ldtk_tile(&mut commands, layer, tile, tileset, &mut collision_map).insert(LevelDespawnFlag);
-            }
-        }
+        // if let Some(layer) = level.layer_instances.as_ref().and_then(|v| v.iter().find(|l| l.identifier == "walls")) {
+        //     let tileset = tilesets.lookup.get(&layer.tileset_def_uid.unwrap()).unwrap();
+        //     for tile in &layer.auto_layer_tiles {
+        //         spawn_ldtk_tile(&mut commands, layer, tile, tileset, &mut collision_map).insert(LevelDespawnFlag);
+        //     }
+        // }
 
         // // Entity Layers // //
 
@@ -110,9 +107,42 @@ fn setup_map(
 
 fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
+    mut images: ResMut<Assets<Image>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<TextureBankMaterial>>,
 ) {
     commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/game.ldtk")));
+
+    let mut bank = TextureBank::new(UVec2::new(24, 24), 16, &mut images);
+    bank.insert(
+        "test", 
+        &asset_server.load_with_settings::<Image, ImageLoaderSettings>(
+            "level/walls.png",
+            |s: &mut _| {
+                *s = ImageLoaderSettings {
+                    sampler: ImageSampler::nearest(),
+                    ..ImageLoaderSettings::default()
+                }
+            },
+        ),
+        TextureBankImportConfig{
+            count: UVec2::new(6, 5),
+            offset: UVec2::ONE,
+            spacing: UVec2::ONE*2
+        }
+    ).unwrap();
+    let bank_entity = commands.spawn(bank);
+
+    let material = TextureBankMaterial::new(UVec2::new(10,10), Some(bank_entity.id()));
+    let mesh = material.create_quad_mesh(1.0);
+    let material = materials.add(material);
+
+    commands.spawn((
+        Mesh2d(meshes.add(mesh)),
+        MeshMaterial2d(material),
+        Transform::from_translation(Vec3::new(0.0,0.0,-1.0)),
+    ));
 }
 
 fn collision_render_debug(
