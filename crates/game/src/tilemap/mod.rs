@@ -2,51 +2,48 @@
 
 use bevy::{asset::load_internal_asset, prelude::*, sprite::Material2dPlugin};
 
-mod tilemap_entry;
-pub use tilemap_entry::*;
-
-mod texture_bank;
-pub use texture_bank::*;
-
-mod texture_bank_import;
-pub use texture_bank_import::*;
-
-mod texture_bank_identifier;
-pub use texture_bank_identifier::*;
-
-mod texture_bank_entry;
-pub use texture_bank_entry::*;
-
 mod material;
 pub use material::*;
 
-pub struct PluginTextureBank;
+use crate::render::{mta_sync, MultiTextureAtlas};
 
-impl Plugin for PluginTextureBank {
+pub struct PluginTilemapMaterial;
+
+impl Plugin for PluginTilemapMaterial {
     fn build(&self, app: &mut App) {
         load_internal_asset!(app, HANDLE_SHADER_TEXTURE_BANK, "material.wgsl", Shader::from_wgsl);
         app
-            .add_systems(PostUpdate, sync_texture_bank_textures)
-            .init_asset::<TextureBankMaterial>()
-            .add_plugins(Material2dPlugin::<TextureBankMaterial>::default());
+            .init_asset::<TilemapMaterial>()
+            .add_plugins(Material2dPlugin::<TilemapMaterial>::default())
+            .add_systems(PostUpdate, tilemap_toucher.after(mta_sync));
     }
 }
 
-pub fn sync_texture_bank_textures(
-    mut r_materials: ResMut<Assets<TextureBankMaterial>>,
-    mut r_images:    ResMut<Assets<Image>>,
-    mut q_banks:     Query<&mut TextureBank>,
-) {
-    for (material, bank) in r_materials.iter_mut().filter_map(|(_, material)| material.bank_entity.map(|v| (material, v))) {
-        let mut bank = q_banks.get_mut(bank).unwrap();
-        if bank.has_pending_queue() {
-            bank.process_queue(&r_images);
-        }
-        if bank.needs_sync() {
-            bank.sync_images(&mut r_images);
-        }
-        if material.bank_textures.is_none() {
-            material.bank_textures = Some(bank.handles().to_vec().into_boxed_slice());
-        }
+#[derive(Debug, Clone, Component)]
+pub struct TilemapMaterialSync(Entity, Handle<TilemapMaterial>);
+
+impl TilemapMaterialSync {
+    #[must_use]
+    pub fn new(tilemap_entity: Entity, handle: &Handle<TilemapMaterial>) -> Self {
+        Self(tilemap_entity, handle.clone_weak())
     }
+}
+
+pub fn tilemap_toucher(
+    q_mta: Query<(Entity, &MultiTextureAtlas), Changed<MultiTextureAtlas>>,
+    q_sync: Query<&TilemapMaterialSync>,
+    mut materials: ResMut<Assets<TilemapMaterial>>,
+) {
+    q_mta.iter().for_each(|(src, atlas)| {
+        q_sync.iter()
+            .filter(|TilemapMaterialSync(dst, _)| src == *dst)
+            .for_each(|TilemapMaterialSync(_, hdl)| { 
+                if let Some(v) = materials.get_mut(hdl) { // This forces the textures to update, as the material is marked dirty when get_mut is called
+                    // This syncs the texture atlas. Makes it easier to spawn if this is done lazily.
+                    if v.get_multi_texture_atlas().is_none() {
+                        v.set_multi_texture_atlas(Some(atlas.handles().cloned().collect::<Vec<_>>().into_boxed_slice()));
+                    }
+                }
+            });
+    });
 }

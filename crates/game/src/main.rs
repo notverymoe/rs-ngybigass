@@ -1,18 +1,24 @@
 // Copyright 2025 Natalie Baker // AGPLv3 //
 
-use bevy::{image::{ImageLoaderSettings, ImageSampler}, prelude::*};
+use bevy::prelude::*;
 
 use bevy_asset_ldtk::{util::ldtk_resolve_layer_position, LDTKAssetPlugin, LDTKProject};
 
 use game::{
-    collision::CollisionMap, level::spawn_player, pawn::{sync_pawn_transform, Pawn}, player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer}, scale::{apply_pixel_scale, PixelsPerUnit}, tilemap::{PluginTextureBank, TextureBank, TextureBankImportConfig, TextureBankMaterial}
+    collision::CollisionMap,
+    level::spawn_player,
+    pawn::{sync_pawn_transform, Pawn},
+    player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer},
+    render::{MultiTextureAtlasBuilder, MultiTextureAtlasLoader, PluginMultiTextureAtlas},
+    scale::{apply_pixel_scale, PixelsPerUnit}, tilemap::{PluginTilemapMaterial, TilemapMaterial, TilemapMaterialSync}
 };
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(LDTKAssetPlugin)
-        .add_plugins(PluginTextureBank)
+        .add_plugins(PluginMultiTextureAtlas)
+        .add_plugins(PluginTilemapMaterial)
         // .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(PixelsPerUnit(24.0))
         .insert_resource(CollisionMap::default())
@@ -40,10 +46,10 @@ fn setup_map(
 
     mut asset_events: EventReader<AssetEvent<LDTKProject>>,
 
-    // asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
     assets_ldtk: Res<Assets<LDTKProject>>,    
-    // mut assets_texture_asset_layouts: ResMut<Assets<TextureAtlasLayout>>,
 
+    mut loaders: Query<&mut MultiTextureAtlasLoader>,
     player: Query<&PawnPlayer>,
     despawn: Query<Entity, With<LevelDespawnFlag>>,
 
@@ -64,6 +70,14 @@ fn setup_map(
         for entity in &despawn {
             commands.entity(entity).despawn();
         }
+
+        loaders.iter_mut().for_each(|mut loader| { loader.insert(
+            0, 
+            asset_server.load::<Image>("level/walls.png"),
+            UVec2::new(6, 5),
+            UVec2::ONE,
+            UVec2::ONE*2
+        ).unwrap();});
 
         let Some(project) = assets_ldtk.get(&map_handle.0) else { return; };
         let world: &bevy_asset_ldtk::schemas::latest::World = project.worlds.first().unwrap();
@@ -110,38 +124,20 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<TextureBankMaterial>>,
+    mut materials: ResMut<Assets<TilemapMaterial>>,
 ) {
     commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/game.ldtk")));
 
-    let mut bank = TextureBank::new(UVec2::new(24, 24), 16, &mut images);
-    bank.insert(
-        "test", 
-        &asset_server.load_with_settings::<Image, ImageLoaderSettings>(
-            "level/walls.png",
-            |s: &mut _| {
-                *s = ImageLoaderSettings {
-                    sampler: ImageSampler::nearest(),
-                    ..ImageLoaderSettings::default()
-                }
-            },
-        ),
-        TextureBankImportConfig{
-            count: UVec2::new(6, 5),
-            offset: UVec2::ONE,
-            spacing: UVec2::ONE*2
-        }
-    ).unwrap();
-    let bank_entity = commands.spawn(bank);
+    let tilesets = commands.spawn(MultiTextureAtlasBuilder::new(UVec2::new(24,24)).build_with_loader(&mut images)).id();
 
-    let material = TextureBankMaterial::new(UVec2::new(10,10), Some(bank_entity.id()));
+    let material = TilemapMaterial::new(UVec2::new(10,10), None);
     let mesh = material.create_quad_mesh(1.0);
     let material = materials.add(material);
-
     commands.spawn((
+        TilemapMaterialSync::new(tilesets, &material),
         Mesh2d(meshes.add(mesh)),
         MeshMaterial2d(material),
-        Transform::from_translation(Vec3::new(0.0,0.0,-1.0)),
+        Transform::from_translation(Vec3::new(0.0, 0.0, -1.0)),
     ));
 }
 

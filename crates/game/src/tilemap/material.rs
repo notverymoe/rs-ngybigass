@@ -4,33 +4,32 @@
 
 use core::num::NonZeroU32;
 
-use bevy::{asset::RenderAssetUsages, ecs::system::{lifetimeless::SRes, SystemParamItem}, pbr::{MaterialPipeline, MaterialPipelineKey}, prelude::*, render::{ mesh::{MeshVertexBufferLayoutRef, PrimitiveTopology}, render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupError, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource, BindingResources, BindingType, BufferBinding, BufferBindingType, BufferInitDescriptor, BufferUsages, PreparedBindGroup, RenderPipelineDescriptor, SamplerBindingType, ShaderRef, ShaderStages, SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, UnpreparedBindGroup}, renderer::RenderDevice, texture::{FallbackImage, GpuImage}}, sprite::{Material2d, Material2dKey}};
+use bevy::{asset::{RenderAssetUsages, weak_handle}, ecs::system::{lifetimeless::SRes, SystemParamItem}, pbr::{MaterialPipeline, MaterialPipelineKey}, prelude::*, render::{ mesh::{MeshVertexBufferLayoutRef, PrimitiveTopology}, render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupError, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource, BindingResources, BindingType, BufferBinding, BufferBindingType, BufferInitDescriptor, BufferUsages, PreparedBindGroup, RenderPipelineDescriptor, SamplerBindingType, ShaderRef, ShaderStages, SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, UnpreparedBindGroup}, renderer::RenderDevice, texture::{FallbackImage, GpuImage}}, sprite::{Material2d, Material2dKey}};
 
-use super::TextureBankIdentifier;
+use crate::render::MultiTextureAtlasSlotID;
 
-pub const HANDLE_SHADER_TEXTURE_BANK: Handle<Shader> = Handle::weak_from_u128(4_708_015_359_337_029_742);
+pub const HANDLE_SHADER_TEXTURE_BANK: Handle<Shader> = weak_handle!("28a0a0a2-e20f-440e-84c5-b5d0d35c4611");
 
 #[derive(Asset, TypePath, Debug, Clone)]
-pub struct TextureBankMaterial {
-    size: UVec2,
-    pub(super) bank_entity:   Option<Entity>,
-    pub(super) bank_textures: Option<Box<[Handle<Image>]>>,
-    pub(super) tile_data:     Vec<u32>,
+pub struct TilemapMaterial {
+    size:           UVec2,
+    atlas_textures: Option<Box<[Handle<Image>]>>,
+    tile_data:      Vec<u32>,
 }
 
-impl TextureBankMaterial {
+impl TilemapMaterial {
     const MAX_BANK_TEXTURES:    usize      = 16;
     const MAX_BANK_TEXTURES_NZ: NonZeroU32 = if let Some(v) = NonZeroU32::new(Self::MAX_BANK_TEXTURES as u32) { v } else { panic!("Unreachable.") };
 
     #[must_use] 
     pub fn new(
-        size: UVec2, 
-        bank_entity: Option<Entity>
+        size: UVec2,
+        atlas_textures: Option<Box<[Handle<Image>]>>,
     ) -> Self {
-        let mut tile_data = vec![1; (size.x*size.y+2) as usize];
+        let mut tile_data = vec![0; (size.x*size.y+2) as usize];
         tile_data[0] = size.x;
         tile_data[1] = size.y;
-        Self { size, bank_entity, bank_textures: None, tile_data }
+        Self { size, atlas_textures, tile_data }
     }
 
     #[must_use] 
@@ -48,16 +47,30 @@ impl TextureBankMaterial {
 
 }
 
-impl TextureBankMaterial {
+impl TilemapMaterial {
 
-    pub fn set_tile(&mut self, position: UVec2, identifer: TextureBankIdentifier, flip_x: bool, flip_y: bool) {
-        let data = ((flip_y as u32) << 17) | ((flip_x as u32) << 16) | (identifer.to_raw() as u32);
+    #[must_use]
+    pub fn get_multi_texture_atlas(&self) -> Option<&[Handle<Image>]> {
+        self.atlas_textures.as_deref()
+    }
+
+    pub fn set_multi_texture_atlas(&mut self, atlas_textures: Option<Box<[Handle<Image>]>>) {
+        self.atlas_textures = atlas_textures;
+    }
+
+    pub fn set_tile(&mut self, position: UVec2, identifer: MultiTextureAtlasSlotID, flip_x: bool, flip_y: bool) {
+        let data = ((flip_y as u32) << 17) | ((flip_x as u32) << 16) | Self::encode_slot_id(identifer);
         self.tile_data[(2 + (position.x + position.y*self.size.x)) as usize] = data;
+    }
+
+    #[must_use]
+    const fn encode_slot_id(identifer: MultiTextureAtlasSlotID) -> u32 {
+        (((identifer.bank & 0x00FF) << 8) | (identifer.slot & 0x00FF)) as u32
     }
 
 }
 
-impl AsBindGroup for TextureBankMaterial {
+impl AsBindGroup for TilemapMaterial {
     type Data = ();
     type Param = (
         SRes<FallbackImage>,
@@ -77,7 +90,7 @@ impl AsBindGroup for TextureBankMaterial {
         let fallback_image = &fallback_image.d2_array;
         let mut sampler = &fallback_image.sampler;
         let mut textures = [&*fallback_image.texture_view; Self::MAX_BANK_TEXTURES];
-        if let Some(bank_textures) = &self.bank_textures {
+        if let Some(bank_textures) = &self.atlas_textures {
             for (i, handle) in bank_textures.iter().take(Self::MAX_BANK_TEXTURES).enumerate() {
                 if let Some(image) = image_assets.get(handle) {
                     textures[i] = &*image.texture_view;
@@ -174,7 +187,7 @@ impl AsBindGroup for TextureBankMaterial {
     }
 }
 
-impl Material2d for TextureBankMaterial {
+impl Material2d for TilemapMaterial {
     fn vertex_shader() -> ShaderRef {
         HANDLE_SHADER_TEXTURE_BANK.into()
     }
@@ -195,7 +208,7 @@ impl Material2d for TextureBankMaterial {
     }
 }
 
-impl Material for TextureBankMaterial {
+impl Material for TilemapMaterial {
     fn vertex_shader() -> ShaderRef {
         HANDLE_SHADER_TEXTURE_BANK.into()
     }

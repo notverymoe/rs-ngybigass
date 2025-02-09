@@ -10,7 +10,7 @@
 @group(2) @binding(2) var<storage, read> tile_data: array<u32>;
 
 struct VertexInput {
-    @builtin(vertex_index) vertex_index: u32,
+    @builtin(  vertex_index) vertex_index: u32,
     @builtin(instance_index) instance_index: u32,
     @location(0) position: vec3<f32>,
 }
