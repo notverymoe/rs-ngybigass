@@ -21,9 +21,17 @@ pub fn ldtk_resolve_layer_position(layer: &LayerInstance, object_px: &[i64]) -> 
 }
 
 #[must_use]
+pub fn ldtk_resolve_layer_tile_position(layer: &LayerInstance, object_px: &[i64]) -> UVec2 {
+    UVec2::new(
+        (object_px[0] / layer.grid_size) as u32,
+        (object_px[1] / layer.grid_size) as u32,
+    )
+}
+
+#[must_use]
 pub fn ldtk_resolve_position(offset_x: i64, offset_y: i64, object_px: &[i64], ppu: f32) -> Vec2 {
     Vec2::new(
         ((offset_x + object_px[0]) as f32)/ppu, 
-       -((offset_y + object_px[1]) as f32)/ppu
+        ((offset_y + object_px[1]) as f32)/ppu
    )
 }

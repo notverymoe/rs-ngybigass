@@ -4,7 +4,7 @@
 
 use core::num::NonZeroU32;
 
-use bevy::{asset::{RenderAssetUsages, weak_handle}, ecs::system::{lifetimeless::SRes, SystemParamItem}, pbr::{MaterialPipeline, MaterialPipelineKey}, prelude::*, render::{ mesh::{MeshVertexBufferLayoutRef, PrimitiveTopology}, render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupError, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource, BindingResources, BindingType, BufferBinding, BufferBindingType, BufferInitDescriptor, BufferUsages, PreparedBindGroup, RenderPipelineDescriptor, SamplerBindingType, ShaderRef, ShaderStages, SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, UnpreparedBindGroup}, renderer::RenderDevice, texture::{FallbackImage, GpuImage}}, sprite::{Material2d, Material2dKey}};
+use bevy::{asset::{weak_handle, RenderAssetUsages}, ecs::system::{lifetimeless::SRes, SystemParamItem}, pbr::{MaterialPipeline, MaterialPipelineKey}, prelude::*, render::{ mesh::{MeshVertexBufferLayoutRef, PrimitiveTopology}, render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupError, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource, BindingResources, BindingType, BufferBinding, BufferBindingType, BufferInitDescriptor, BufferUsages, PreparedBindGroup, RenderPipelineDescriptor, SamplerBindingType, ShaderRef, ShaderStages, SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, UnpreparedBindGroup}, renderer::RenderDevice, texture::{FallbackImage, GpuImage}}, sprite::{AlphaMode2d, Material2d, Material2dKey}};
 
 use crate::render::MultiTextureAtlasSlotID;
 
@@ -58,14 +58,14 @@ impl TilemapMaterial {
         self.atlas_textures = atlas_textures;
     }
 
-    pub fn set_tile(&mut self, position: UVec2, identifer: MultiTextureAtlasSlotID, flip_x: bool, flip_y: bool) {
-        let data = ((flip_y as u32) << 17) | ((flip_x as u32) << 16) | Self::encode_slot_id(identifer);
+    pub fn set_tile(&mut self, position: UVec2, identifer: Option<MultiTextureAtlasSlotID>, flip_x: bool, flip_y: bool) {
+        let data = ((flip_y as u32) << 17) | ((flip_x as u32) << 16) | identifer.map_or(0, Self::encode_slot_id);
         self.tile_data[(2 + (position.x + position.y*self.size.x)) as usize] = data;
     }
 
     #[must_use]
     const fn encode_slot_id(identifer: MultiTextureAtlasSlotID) -> u32 {
-        (((identifer.bank & 0x00FF) << 8) | (identifer.slot & 0x00FF)) as u32
+        (((identifer.bank & 0x00FF) << 8) | ((identifer.slot + 1) & 0x00FF)) as u32
     }
 
 }
@@ -194,6 +194,10 @@ impl Material2d for TilemapMaterial {
 
     fn fragment_shader() -> ShaderRef {
         HANDLE_SHADER_TEXTURE_BANK.into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
     }
     
     fn specialize(

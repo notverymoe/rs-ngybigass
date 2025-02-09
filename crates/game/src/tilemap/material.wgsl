@@ -62,5 +62,9 @@ fn fragment(
 fn textureSampleBank(id: u32, uv: vec2<f32>) -> vec4<f32> {
     var bank_id = (id >> 8) & 0x0F;
     var slot_id =  id       & 0xFF;
-    return textureSample(textures[bank_id], texture_sampler, uv, slot_id);
+    return select(
+        textureSample(textures[bank_id], texture_sampler, uv, slot_id-1), 
+        vec4(0.0,0.0,0.0,0.0), 
+        slot_id == 0
+    );
 }

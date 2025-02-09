@@ -2,15 +2,14 @@
 
 use bevy::prelude::*;
 
-use bevy_asset_ldtk::{util::ldtk_resolve_layer_position, LDTKAssetPlugin, LDTKProject};
+use bevy_asset_ldtk::{schemas::v1_5_3::LdtkJson, util::{ldtk_resolve_layer_position, ldtk_resolve_layer_tile_position}, LDTKAssetPlugin, LDTKProject};
 
 use game::{
     collision::CollisionMap,
-    level::spawn_player,
     pawn::{sync_pawn_transform, Pawn},
-    player::{player_move_apply, player_move_keeb, player_move_mouse, PawnPlayer},
+    player::{player_move_apply, player_move_keeb, player_move_mouse, CameraPlayer, PawnPlayer},
     render::{MultiTextureAtlasBuilder, MultiTextureAtlasLoader, PluginMultiTextureAtlas},
-    scale::{apply_pixel_scale, PixelsPerUnit}, tilemap::{PluginTilemapMaterial, TilemapMaterial, TilemapMaterialSync}
+    scale::{apply_pixel_scale, CameraPixelScaler, PixelsPerUnit}, tilemap::{PluginTilemapMaterial, TilemapMaterial, TilemapMaterialSync}
 };
 
 fn main() {
@@ -44,57 +43,77 @@ pub struct LevelDespawnFlag;
 fn setup_map(    
     mut commands: Commands,
 
-    mut asset_events: EventReader<AssetEvent<LDTKProject>>,
+    mut ev_asset_ldtk_events: EventReader<AssetEvent<LDTKProject>>,
 
-    asset_server: Res<AssetServer>,
-    assets_ldtk: Res<Assets<LDTKProject>>,    
+    r_asset_server: Res<AssetServer>,
+    r_assets_ldtk: Res<Assets<LDTKProject>>,    
 
-    mut loaders: Query<&mut MultiTextureAtlasLoader>,
-    player: Query<&PawnPlayer>,
-    despawn: Query<Entity, With<LevelDespawnFlag>>,
+    q_player: Query<&PawnPlayer>,
+    q_despawn: Query<Entity, With<LevelDespawnFlag>>,
 
-    map_handle: Res<GameProjectHandle>,
-    mut collision_map: ResMut<CollisionMap>,
+    r_map_active: Res<GameProjectHandle>,
+    mut r_collision_map: ResMut<CollisionMap>,
+
+    mut r_images: ResMut<Assets<Image>>,
+    mut r_meshes: ResMut<Assets<Mesh>>,
+    mut r_materials: ResMut<Assets<TilemapMaterial>>,
 ) {
-    let player_spawned = !player.is_empty();
+    let player_spawned = !q_player.is_empty();
     let mut player_spawned_now = false;
 
-    if asset_events.read().any(|ev| map_handle.0.id() == *match ev {
+    if ev_asset_ldtk_events.read().any(|ev| r_map_active.0.id() == *match ev {
         AssetEvent::Added { id } => id,
         AssetEvent::Modified { id } => id,
         AssetEvent::Removed { id } => id,
         AssetEvent::Unused { id } => id,
         AssetEvent::LoadedWithDependencies { id } => id,
     }) {
-        collision_map.clear();
-        for entity in &despawn {
+        r_collision_map.clear();
+        for entity in &q_despawn {
             commands.entity(entity).despawn();
         }
 
-        loaders.iter_mut().for_each(|mut loader| { loader.insert(
-            0, 
-            asset_server.load::<Image>("level/walls.png"),
-            UVec2::new(6, 5),
-            UVec2::ONE,
-            UVec2::ONE*2
-        ).unwrap();});
-
-        let Some(project) = assets_ldtk.get(&map_handle.0) else { return; };
+        let Some(project) = r_assets_ldtk.get(&r_map_active.0) else { return; };
         let world: &bevy_asset_ldtk::schemas::latest::World = project.worlds.first().unwrap();
         let Some(level) = world.levels.iter().find(|l| l.identifier == "level_0") else { panic!("Level data contains no 'level_0' room"); };
 
         // // Tilesets // //
 
-        // let tilesets = ldtk_load_tilesets(&asset_server, &mut assets_texture_asset_layouts, project, "level/");
+        let (atlas, mut loader) = MultiTextureAtlasBuilder::new(UVec2::new(24,24)).build_with_loader(&mut r_images);
+        let mut tileset_entity = commands.spawn(atlas);
+        let tileset_entity_id = tileset_entity.id();
+
+        ldtk_load_tilesets(&r_asset_server, &mut loader, project, "level/");
 
         // // Tile Layers // //
 
-        // if let Some(layer) = level.layer_instances.as_ref().and_then(|v| v.iter().find(|l| l.identifier == "walls")) {
-        //     let tileset = tilesets.lookup.get(&layer.tileset_def_uid.unwrap()).unwrap();
-        //     for tile in &layer.auto_layer_tiles {
-        //         spawn_ldtk_tile(&mut commands, layer, tile, tileset, &mut collision_map).insert(LevelDespawnFlag);
-        //     }
-        // }
+        if let Some(layer) = level.layer_instances.as_ref().and_then(|v| v.iter().find(|l| l.identifier == "walls")) {
+
+            let mut tilemap = TilemapMaterial::new(UVec2::new(layer.c_wid as u32, layer.c_hei as u32), None);
+
+            if let Some(tileset) = layer.tileset_def_uid.and_then(|uid| loader.get(uid)) {
+                for tile in &layer.auto_layer_tiles {
+
+                    let position  = ldtk_resolve_layer_tile_position(layer, &tile.px);
+                    let identifer = tileset.slots[tile.t as usize];
+                    let flip      = tile.f;
+                    
+                    tilemap.set_tile(position, Some(identifer), flip & 0x01 != 0, flip & 0x02 != 0);
+                    r_collision_map.get_mut(0).insert(position.as_vec2() + Vec2::ONE*0.5, Rectangle::from_size(Vec2::ONE), None);
+                }
+            }
+
+            let mesh = tilemap.create_quad_mesh(1.0);
+            let material = r_materials.add(tilemap);
+            tileset_entity.commands_mut().spawn((
+                TilemapMaterialSync::new(tileset_entity_id, &material),
+                Mesh2d(r_meshes.add(mesh)),
+                MeshMaterial2d(material),
+                Transform::from_translation(Vec3::new(0.0, 0.0, -1.0)),
+            ));
+        }
+
+        tileset_entity.insert(loader);
 
         // // Entity Layers // //
 
@@ -122,23 +141,8 @@ fn setup_map(
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut images: ResMut<Assets<Image>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<TilemapMaterial>>,
 ) {
     commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/game.ldtk")));
-
-    let tilesets = commands.spawn(MultiTextureAtlasBuilder::new(UVec2::new(24,24)).build_with_loader(&mut images)).id();
-
-    let material = TilemapMaterial::new(UVec2::new(10,10), None);
-    let mesh = material.create_quad_mesh(1.0);
-    let material = materials.add(material);
-    commands.spawn((
-        TilemapMaterialSync::new(tilesets, &material),
-        Mesh2d(meshes.add(mesh)),
-        MeshMaterial2d(material),
-        Transform::from_translation(Vec3::new(0.0, 0.0, -1.0)),
-    ));
 }
 
 fn collision_render_debug(
@@ -152,4 +156,46 @@ fn collision_render_debug(
             LinearRgba::rgb(1.0, 0.0, 0.0)
         );
     });
+}
+
+pub fn spawn_player(
+    commands: &mut Commands,
+    position: Vec2,
+) {
+    commands.spawn((
+        PawnPlayer{
+            action_movement: None,
+            move_speed_max: 4.0*3.6,
+            move_speed_min: 1.4
+        },
+        Pawn::new(position, 1.0, 0x01),
+        Transform::IDENTITY,
+        InheritedVisibility::VISIBLE
+    )).with_child((
+        Camera2d,
+        CameraPlayer,
+        CameraPixelScaler{
+            size_target_units: Vec2::ONE*15.0
+        }
+    ));
+}
+
+pub fn ldtk_load_tilesets(
+    asset_server: &AssetServer,
+    loader: &mut MultiTextureAtlasLoader,
+    project: &LdtkJson,
+    root_path: &str,
+) {
+    let defs: &bevy_asset_ldtk::schemas::latest::Definitions = &project.defs;
+    for tileset in &defs.tilesets {
+        if let Some(rel_path) = &tileset.rel_path {
+            loader.insert(
+                tileset.uid, 
+                asset_server.load::<Image>([root_path, rel_path].join("")), 
+                UVec2::new(tileset.c_wid   as u32, tileset.c_hei   as u32), 
+                UVec2::new(tileset.padding as u32, tileset.padding as u32),
+                UVec2::new(tileset.spacing as u32, tileset.spacing as u32),
+            );
+        }
+    }
 }

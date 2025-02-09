@@ -22,8 +22,7 @@ pub fn apply_pixel_scale(
                     viewport_size.as_vec2()
                 );
 
-                // projection.viewport_origin = Vec2::new(0.5, 0.5) + ((transform.translation().truncate() * r_ppu.0).round() - (transform.translation().truncate() * r_ppu.0))/viewport_size.as_vec2();
-                projection.scaling_mode = ScalingMode::AutoMin { min_width: size.x, min_height: size.y }
+                projection.scaling_mode = ScalingMode::AutoMin { min_width: size.x, min_height: size.y };
             }
         }
     });
