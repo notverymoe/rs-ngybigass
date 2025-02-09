@@ -1,6 +1,6 @@
 // Copyright 2025 Natalie Baker // AGPLv3 //
 
-use bevy::prelude::*;
+use bevy::{image::{ImageLoaderSettings, ImageSampler}, prelude::*};
 
 use bevy_asset_ldtk::{accessors::LdtkRoot, LDTKAssetPlugin, LDTKProject};
 
@@ -29,7 +29,6 @@ fn main() {
             player_move_apply
         ).chain())
         .add_systems(PostUpdate, sync_pawn_transform)
-        .add_systems(PostUpdate, collision_render_debug)
         .add_systems(PostUpdate, apply_pixel_scale)
         .run();
 }
@@ -132,7 +131,7 @@ fn setup_map(
                     }
                 } else {
                     player_spawned_now = true;
-                    spawn_player(&mut commands, entity.offset_px().as_vec2()/r_ppu.0 + Vec2::splat(0.5));
+                    spawn_player(&mut commands, &r_asset_server, entity.offset_px().as_vec2()/r_ppu.0 + Vec2::splat(0.5));
                 }
             }
         }
@@ -148,23 +147,10 @@ fn setup(
     commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/game.ldtk")));
 }
 
-fn collision_render_debug(
-    q_players: Query<&Pawn, With<PawnPlayer>>,
-    mut gizmos: Gizmos
-) {
-    gizmos.circle_2d(Vec2::ZERO, 0.5, LinearRgba::rgb(1.0, 0.5, 0.5));
-    q_players.iter().for_each(|pawn| {
-        gizmos.circle_2d(
-            pawn.origin(),
-            pawn.radius(),
-            LinearRgba::rgb(1.0, 0.0, 0.0)
-        );
-    });
-}
-
 pub fn spawn_player(
     commands: &mut Commands,
-    position: Vec2,
+    assets: &AssetServer,
+    position: Vec2
 ) {
     commands.spawn((
         PawnPlayer{
@@ -172,8 +158,18 @@ pub fn spawn_player(
             move_speed_max: 4.0*3.6,
             move_speed_min: 1.4
         },
+        Sprite{
+            image: assets.load_with_settings(
+                "player.png", 
+                |settings: &mut ImageLoaderSettings| {
+                    settings.sampler = ImageSampler::nearest();
+                }
+            ),
+            custom_size: Some(Vec2::ONE),
+            ..default()
+        },
         Pawn::new(position, 1.0, 0x01),
-        Transform::IDENTITY,
+        Transform::from_translation(position.extend(0.0)),
         InheritedVisibility::VISIBLE
     )).with_child((
         Camera2d,
