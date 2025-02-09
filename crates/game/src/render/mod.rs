@@ -2,3 +2,6 @@
 
 mod multi_texture_atlas;
 pub use multi_texture_atlas::*;
+
+mod tilemap;
+pub use tilemap::*;

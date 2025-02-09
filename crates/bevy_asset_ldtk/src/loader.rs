@@ -3,7 +3,7 @@
 use bevy::{asset::{io::Reader, AssetLoader, LoadContext}, prelude::*};
 use thiserror::Error;
 
-use crate::{schemas::latest::LdtkJson, LDTKProject};
+use crate::{schema::LdtkJson, LDTKProject};
 
 #[non_exhaustive]
 #[derive(Debug, Error)]

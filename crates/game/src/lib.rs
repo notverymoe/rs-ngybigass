@@ -2,7 +2,6 @@
 
 pub mod collision;
 pub mod scale;
-pub mod tilemap;
 pub mod pawn;
 pub mod player;
 pub mod render;

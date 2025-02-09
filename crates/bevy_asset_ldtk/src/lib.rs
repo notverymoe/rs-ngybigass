@@ -2,13 +2,13 @@
 
 use bevy::prelude::*;
 
+pub mod accessors;
+pub mod loader;
+pub mod schema;
 pub mod util;
 
-pub mod schemas;
-mod loader;
-
 #[derive(Asset, TypePath, Debug, Deref)]
-pub struct LDTKProject(schemas::latest::LdtkJson);
+pub struct LDTKProject(schema::LdtkJson);
 
 pub struct LDTKAssetPlugin;
 

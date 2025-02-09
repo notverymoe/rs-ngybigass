@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::schemas::latest::{LayerInstance, TilesetDefinition};
+use crate::schema::{LayerInstance, TilesetDefinition};
 
 #[must_use]
 pub fn ldtk_make_texture_atlas_layout(tileset: &TilesetDefinition) -> TextureAtlasLayout {
