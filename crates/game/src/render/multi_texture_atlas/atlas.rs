@@ -1,4 +1,4 @@
-use bevy::{asset::{Assets, Handle}, image::{Image, TextureFormatPixelInfo}, math::{UVec2, UVec3}, render::render_resource::TextureFormat, prelude::Component};
+use bevy::{asset::{Assets, Handle}, image::{Image, TextureFormatPixelInfo}, math::{UVec2, UVec3}, prelude::Component, render::render_resource::TextureFormat};
 use thiserror::Error;
 
 use super::{MultiTextureAtlasBuilder, MultiTextureAtlasSlotID};
@@ -84,9 +84,9 @@ impl MultiTextureAtlas {
         let bank = self.banks.get_mut(id.bank).unwrap();
     
         copy_image_unchecked(
-            &mut bank.data.data[dst_layer_size*id.slot..], 
+            &mut bank.data.data.as_mut().unwrap()[dst_layer_size*id.slot..], 
             dst_w, dst_h, 
-            &src.data[src_layer_size*(src_offset.z as usize)..],
+            &src.data.as_ref().unwrap()[src_layer_size*(src_offset.z as usize)..],
             src_x, src_y, src_w
         );
 

@@ -10,7 +10,7 @@ members = [
 raydee = { path = "crates/raydee" }
 strid = { path = "crates/strid" }
 bevy_asset_ldtk = { path = "crates/bevy_asset_ldtk" }
-bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "556b75078288464e9628d3e939afdedfea34e958", features=["file_watcher", "dynamic_linking"] }
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "fb1e829294815372ec7ea90c85ce7ca90e12e9a5", features=["file_watcher", "dynamic_linking"] }
 tinyvec = "1.8.0"
 enum-derive-2018 = "3.0.2"
 macro-attr-2018 = "3.0.1"

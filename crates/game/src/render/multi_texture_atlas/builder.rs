@@ -73,7 +73,7 @@ impl MultiTextureAtlasBuilder {
                 usage: TextureUsages::TEXTURE_BINDING, 
                 view_formats: &[],
             },
-            data: vec![0; layer_size*MultiTextureAtlas::SLOT_COUNT],
+            data: Some(vec![0; layer_size*MultiTextureAtlas::SLOT_COUNT]),
             sampler: self.sampler.clone(),
             texture_view_descriptor: None,
             asset_usage: RenderAssetUsages::RENDER_WORLD,

@@ -12,6 +12,11 @@ use game::{
     scale::{apply_pixel_scale, CameraPixelScaler, PixelsPerUnit},
 };
 
+// TODO Tilemap tile scale
+// TODO Reuse existing atlas
+// TODO Convience methods for ppu convertion
+// TODO Convience methods for offset to center
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
