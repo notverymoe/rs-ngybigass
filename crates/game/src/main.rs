@@ -2,6 +2,7 @@
 
 use bevy::{image::{ImageLoaderSettings, ImageSampler}, prelude::*};
 
+use bevy_asset_aseprite::AsepriteAssetPlugin;
 use bevy_asset_ldtk::{accessors::LdtkRoot, LDTKAssetPlugin, LDTKProject};
 
 use game::{
@@ -21,9 +22,10 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(LDTKAssetPlugin)
+        .add_plugins(AsepriteAssetPlugin)
         .add_plugins(PluginMultiTextureAtlas)
         .add_plugins(PluginTilemapMaterial)
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Srgba::hex("111122").unwrap().into()))
         .insert_resource(PixelsPerUnit(24.0))
         .insert_resource(CollisionMap::default())
         .add_systems(Startup, setup)
@@ -98,17 +100,21 @@ fn setup_map(
 
     if let Some(layer) = level.layers().find(|l| l.identifier() == "walls") {
 
-        let mut tilemap = TilemapMaterial::new(UVec2::splat(layer.size_grid() as u32), None);
+        let mut tilemap = TilemapMaterial::new((layer.size_px().as_vec2()/(layer.size_grid() as f32)).ceil().as_uvec2(), None);
 
         if let Some(tileset) = layer.tileset_uid().and_then(|uid| loader.get(uid)) {
             for tile in layer.auto_layer_tiles() {
 
+                // TODO check for non-round tile positions and warn
                 let pos_local = tile.offset_local_px()/IVec2::splat(layer.size_grid());
                 let pos_world = tile.offset_px()/IVec2::splat(layer.size_grid());
                 let identifer = tileset.slots[tile.tileset_index()];
                 
                 tilemap.set_tile(pos_local.as_uvec2(), Some(identifer), tile.flip_x(), tile.flip_y());
-                r_collision_map.get_mut(0).insert(pos_world.as_vec2() + Vec2::new(0.5, 0.5), Rectangle::from_size(Vec2::ONE), None);
+
+                if layer.tileset_def().unwrap().has_enum_tag(tile.uid(), "solid") {
+                    r_collision_map.get_mut(0).insert(pos_world.as_vec2() + Vec2::new(0.5, 0.5), Rectangle::from_size(Vec2::ONE), None);
+                }
             }
         }
 
@@ -118,7 +124,7 @@ fn setup_map(
             TilemapMaterialSync::new(tileset_entity_id, &material),
             Mesh2d(r_meshes.add(mesh)),
             MeshMaterial2d(material),
-            Transform::from_translation((layer.offset_px().as_vec2()/r_ppu.0).extend(-1.0)),
+            Transform::from_translation((layer.offset_px().as_vec2()/r_ppu.0).extend(1.0)),
             LevelDespawnFlag
         ));
     }
@@ -149,7 +155,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/game.ldtk")));
+    commands.insert_resource(GameProjectHandle(asset_server.load::<LDTKProject>("level/test.ldtk")));
 }
 
 pub fn spawn_player(

@@ -100,8 +100,8 @@ impl MultiTextureAtlas {
             return Err(MultiTextureAtlasSetError::InvalidFormat(src.texture_descriptor.format, self.format));
         }
 
-        if src_offset.x+self.bounds.x >= src.texture_descriptor.size.width ||
-           src_offset.y+self.bounds.y >= src.texture_descriptor.size.height ||
+        if src_offset.x+self.bounds.x > src.texture_descriptor.size.width ||
+           src_offset.y+self.bounds.y > src.texture_descriptor.size.height ||
            src_offset.z >= src.texture_descriptor.size.depth_or_array_layers {
             return Err(MultiTextureAtlasSetError::OutOfRangeSource(
                 src_offset, 

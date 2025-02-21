@@ -4,7 +4,7 @@ use bevy::math::IVec2;
 
 use crate::schema as schema;
 
-use super::{LdtkEntity, LdtkLevel, LdtkRoot, LdtkTile, LdtkWorld};
+use super::{LdtkEntity, LdtkLevel, LdtkRoot, LdtkTile, LdtkTileset, LdtkWorld};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LdtkLayer<'a>{
@@ -67,6 +67,10 @@ impl LdtkLayer<'_> {
         )
     }
 
+    #[must_use]
+    pub fn tileset_def(&self) -> Option<LdtkTileset<'_>> {
+        self.tileset_uid().and_then(|uid| self.root().tilesets().find(|d| d.uid() == uid))
+    }
 }
 
 impl LdtkLayer<'_> {

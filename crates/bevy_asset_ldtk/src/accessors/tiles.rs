@@ -24,6 +24,11 @@ impl <'a> LdtkTile<'a> {
 impl LdtkTile<'_> {
 
     #[must_use]
+    pub const fn uid(&self) -> i64 {
+        self.tile.t
+    }
+
+    #[must_use]
     pub const fn tileset_index(&self) -> usize {
         self.tile.t as usize
     }

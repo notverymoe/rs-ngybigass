@@ -4,12 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy             = { workspace = true }
-bevy_asset_ldtk  = { workspace = true }
-raydee           = { workspace = true }
-thiserror        = { workspace = true }
-modular-bitfield = { workspace = true }
-bytemuck         = { workspace = true }
+bevy                = { workspace = true }
+bevy_asset_ldtk     = { workspace = true }
+bevy_asset_aseprite = { workspace = true }
+raydee              = { workspace = true }
+thiserror           = { workspace = true }
+modular-bitfield    = { workspace = true }
+bytemuck            = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,0 +1,12 @@
+[package]
+name = "bevy_asset_aseprite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy            = { workspace = true }
+aseprite-loader = { workspace = true }
+thiserror       = { workspace = true }
+
+[lints]
+workspace = true

@@ -57,6 +57,11 @@ impl LdtkTileset<'_> {
         self.tileset.rel_path.as_deref()
     }
 
+    #[must_use]
+    pub fn has_enum_tag(&self, id: i64, tag: &str) -> bool {
+        self.tileset.enum_tags.iter().find(|v| v.enum_value_id == tag).is_some_and(|v| v.tile_ids.contains(&id))
+    }
+
 }
 
 impl LdtkTileset<'_> {
