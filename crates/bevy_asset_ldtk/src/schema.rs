@@ -1,5 +1,7 @@
 #![allow(clippy::all, clippy::pedantic)]
 
+// == dev-1.5.4 == 2024-02-21 == //
+
 // Example code that deserializes and serializes the model.
 // extern crate serde;
 // #[macro_use]
@@ -118,6 +120,9 @@ pub struct LdtkJson {
     /// `OneImagePerLevel`, `LayersAndLevels`
     pub image_export_mode: ImageExportMode,
 
+    /// JSON style Possible values: `Minified`, `Compact`, `Full`
+    pub json_style: Option<JsonStyle>,
+
     /// File format version
     pub json_version: String,
 
@@ -129,9 +134,9 @@ pub struct LdtkJson {
     /// refer to the `worldX`,`worldY` coordinates of each Level.
     pub levels: Vec<Level>,
 
-    /// If TRUE, the Json is partially minified (no indentation, nor line breaks, default is
-    /// FALSE)
-    pub minify_json: bool,
+    /// **WARNING**: this deprecated value will be *removed* completely on version 1.7.0+
+    /// Replaced by: `jsonStyle`
+    pub minify_json: Option<bool>,
 
     /// Next Unique integer ID available
     pub next_uid: i64,
@@ -326,7 +331,7 @@ pub struct EntityDefinition {
     /// An object representing a rectangle from an existing Tileset
     pub tile_rect: Option<TilesetRectangle>,
 
-    /// An enum describing how the the Entity tile is rendered inside the Entity bounds. Possible
+    /// An enum describing how the Entity tile is rendered inside the Entity bounds. Possible
     /// values: `Cover`, `FitInside`, `Repeat`, `Stretch`, `FullSizeCropped`,
     /// `FullSizeUncropped`, `NineSlice`
     pub tile_render_mode: TileRenderMode,
@@ -647,7 +652,7 @@ pub struct TilesetRectangle {
     pub y: i64,
 }
 
-/// An enum describing how the the Entity tile is rendered inside the Entity bounds. Possible
+/// An enum describing how the Entity tile is rendered inside the Entity bounds. Possible
 /// values: `Cover`, `FitInside`, `Repeat`, `Stretch`, `FullSizeCropped`,
 /// `FullSizeUncropped`, `NineSlice`
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1713,4 +1718,14 @@ pub enum ImageExportMode {
 
     #[serde(rename = "OneImagePerLevel")]
     OneImagePerLevel,
+}
+
+/// JSON style Possible values: `Minified`, `Compact`, `Full`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum JsonStyle {
+    Compact,
+
+    Full,
+
+    Minified,
 }
